@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>학과 행사 선착순 신청</title>
+<style>
+  body{font-family:sans-serif;max-width:480px;margin:2rem auto;padding:0 1rem}
+  input,button{padding:.5rem;margin:.2rem 0;width:100%;box-sizing:border-box}
+  #msg{min-height:1.5rem;font-weight:bold}
+</style>
+</head>
+<body>
+<h1>학과 행사 선착순 신청</h1>
+<p>남은 자리: <b id="remain">-</b> / <span id="cap">-</span></p>
+<input id="nm" placeholder="이름">
+<input id="sid" placeholder="학번 (숫자 8~10자리)">
+<button onclick="doApply()">신청</button>
+<button onclick="doCancel()">신청 취소 (학번 기준)</button>
+<p id="msg"></p>
+<h3>신청자 목록</h3>
+<ul id="list"></ul>
+<script>
+function render(d){
+  document.getElementById('remain').textContent = d.remaining;
+  document.getElementById('cap').textContent = d.capacity;
+  const ul = document.getElementById('list');
+  ul.replaceChildren();
+  if (d.applicants.length === 0) {
+    const li = document.createElement('li');
+    li.textContent = '아직 신청자가 없습니다.';
+    ul.append(li);
+    return;
+  }
+  d.applicants.forEach(a => {
+    const li = document.createElement('li');
+    li.textContent = a.student_id + ' ' + a.name;
+    ul.append(li);
+  });
+}
+async function load(){
+  const r = await fetch('/api/list');
+  render(await r.json());
+}
+async function send(path, body){
+  const r = await fetch(path, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(body)
+  });
+  const d = await r.json();
+  const msg = document.getElementById('msg');
+  msg.textContent = d.message || d.error;
+  msg.style.color = r.ok ? 'green' : 'crimson';
+  load();
+}
+function doApply(){
+  send('/api/apply', {name: document.getElementById('nm').value,
+                      student_id: document.getElementById('sid').value});
+}
+function doCancel(){
+  send('/api/cancel', {student_id: document.getElementById('sid').value});
+}
+load();
+</script>
+</body>
+</html>
